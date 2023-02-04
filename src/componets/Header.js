@@ -1,9 +1,11 @@
 import React from 'react'
 import styled from 'styled-components'
-import { auth, provider } from '../Firebase'
-import { signInWithPopup } from 'firebase/auth'
+// import { auth, provider } from '../Firebase'
+// import { signInWithPopup } from 'firebase/auth'
 import { useDispatch, useSelector } from 'react-redux'
-// import { useHistory } from "react-router-dom";
+import { auth, provider } from "../Firebase";
+import { useEffect } from 'react';
+import { useHistory } from "react-router-dom";
 // import { selectUserEmail, selectUserName, selectUserPhoto, setUserLoginDetails } from '../feature/user/userSlice'
 import {
   selectUserName,
@@ -14,21 +16,49 @@ import {
 function Header() {
 
   const dispatch = useDispatch();
-  // const history = useHistory();
+  const history = useHistory();
   const userName = useSelector(selectUserName);
   const userPhoto = useSelector(selectUserPhoto);
 
-  const handleAuth = () => {
-    signInWithPopup(auth, provider).then((result) => {
-      // console.log(result)
-      setUser(result.user)
+  // const handleAuth = () => {
+  //   signInWithPopup(auth, provider).then((result) => {
+  //     // console.log(result)
+  //     setUser(result.user)
+  //   })
+  //     .catch((error) => {
+  //       console.log(error)
+  //     })
+
+  // }
+  useEffect(() => {
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        setUser(user)
+        history.push('/home')
+      }
     })
-      .catch((error) => {
+  }, [userName])
+  const handleAuth = () => {
+
+    if (!userName) {
+      auth
+        .signInWithPopup(provider)
+        .then((result) => {
+          setUser(result.user);
+        })
+        .catch((error) => {
+          console.log(error.message);
+        });
+    } else if (userName) {
+      auth.signOut().then(() => {
+        dispatch(setSignOutState());
+        history.push('/')
+      }).catch((error) => {
         console.log(error)
       })
+    }
 
-  }
-
+  };
   const setUser = (user) => {
     dispatch(
       setUserLoginDetails({
@@ -41,16 +71,13 @@ function Header() {
   return (
     <Nav>
       <Logo>
-        <img src='/images/logo.svg' />
+        <img src="/images/logo.svg" alt="Disney+" />
       </Logo>
-      {!userName ? (<Login onClick={handleAuth}>Login</Login>) :
-        (<>
-          {/* <NavMenu>
-          <a href='#'>
-           <img src='/images/home-icon.svg' /> 
-          </a>
-        </NavMenu> */}
 
+      {!userName ? (
+        <Login onClick={handleAuth}>Login</Login>
+      ) : (
+        <>
           <NavMenu>
             <a href="/home">
               <img src="/images/home-icon.svg" alt="HOME" />
@@ -76,13 +103,15 @@ function Header() {
               <img src="/images/series-icon.svg" alt="SERIES" />
               <span>SERIES</span>
             </a>
-            <UserImg src={userPhoto} alt={userName} />
           </NavMenu>
-        </>)
-
-      }
-
-      {/* <Login onClick={handleAuth}>Login</Login> */}
+          <SignOut>
+            <UserImg src={userPhoto} alt={userName} />
+            <DropDown>
+              <span onClick={handleAuth}>Sign out</span>
+            </DropDown>
+          </SignOut>
+        </>
+      )}
     </Nav>
   )
 }
